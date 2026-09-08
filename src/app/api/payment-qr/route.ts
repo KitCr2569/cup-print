@@ -1,0 +1,2 @@
+import QRCode from "qrcode";import generatePayload from "promptpay-qr";
+export async function GET(request:Request){const amount=Math.max(0,Number(new URL(request.url).searchParams.get("amount")||0));const target=process.env.PROMPTPAY_ID;if(!target)return Response.json({error:"ร้านยังไม่ได้ตั้งค่า PROMPTPAY_ID"},{status:503});const payload=generatePayload(target,{amount});const dataUrl=await QRCode.toDataURL(payload,{width:420,margin:2,color:{dark:"#173c32",light:"#ffffff"}});return Response.json({dataUrl,name:process.env.PROMPTPAY_NAME||"Cup Story",amount})}

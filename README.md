@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cup Story
 
-## Getting Started
+เว็บขายแก้วเซรามิกสั่งพิมพ์ลาย พร้อม Fabric.js editor, 3D preview, PostgreSQL orders, PromptPay และ Admin production desk
 
-First, run the development server:
+## เปิดใช้งานในเครื่อง
 
-```bash
+1. คัดลอก `.env.example` เป็น `.env.local` และเปลี่ยน `ADMIN_PASSWORD`, `AUTH_SECRET`, `PROMPTPAY_ID`
+2. เปิด PostgreSQL แล้วสร้างฐานข้อมูล จากนั้นรัน `database/schema.sql`
+3. ติดตั้งและเปิดเว็บ
+
+```powershell
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- หน้าร้าน: http://localhost:3000
+- ออกแบบแก้ว: http://localhost:3000/design
+- Admin: http://localhost:3000/admin
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## PostgreSQL ด้วย Docker
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```powershell
+docker compose up -d postgres
+```
 
-## Learn More
+Schema จะถูกสร้างอัตโนมัติใน container ใหม่จาก `database/schema.sql`
 
-To learn more about Next.js, take a look at the following resources:
+## โมเดลแก้ว
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Runtime GLB: `public/models/mug-11oz.glb`
+- Blender source: `assets/blender/mug-11oz.blend`
+- สร้าง GLB ใหม่: `npm run generate:mug`
+- ตรวจชื่อ mesh/material/UV: `npm run validate:mug`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Mesh หลักคือ `MugBodyPrint`, `MugCeramic`, `MugHandle`
 
-## Deploy on Vercel
+## Production checklist
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- เปลี่ยน local storage ใน `src/lib/storage/local.ts` เป็น Cloudflare R2/S3
+- ใช้ PostgreSQL managed database และรัน schema ผ่านช่องทางส่วนตัว
+- สุ่ม `AUTH_SECRET` อย่างน้อย 32 bytes และตั้งรหัส Admin ใหม่
+- ใส่ PromptPay ID ของร้านจริง
+- เปิด HTTPS, backup ฐานข้อมูล และ object-storage lifecycle/versioning
+- ทดสอบไฟล์พิมพ์กับเครื่องจริงและยืนยัน UV ด้วยแก้วตัวอย่างก่อนรับออเดอร์

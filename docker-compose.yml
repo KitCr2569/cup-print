@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: cupstory
+      POSTGRES_USER: cupstory
+      POSTGRES_PASSWORD: cupstory_local_only
+    ports:
+      - "54329:5432"
+    volumes:
+      - cupstory_postgres:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cupstory -d cupstory"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  cupstory_postgres:

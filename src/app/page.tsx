@@ -1,69 +1,14 @@
-import Image from "next/image";
-
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
-}
+"use client";
+import {useState} from "react"; import Link from "next/link"; import {ArrowRight,Check,Minus,Plus,ShoppingBag,Sparkles,Upload,X} from "lucide-react"; import {DEFAULT_PRODUCTS,Product,baht,loadProducts} from "@/lib/store";
+type CartItem=Product&{quantity:number};
+function MugArt({product,large=false}:{product:Product;large?:boolean}){return <div className={`mug-scene ${large?"mug-scene-large":""}`} style={{background:product.tint}}><div className="mug-shadow"/><div className="mug-handle"/><div className="mug-body"><div className="mug-rim"/><div className="mug-design" style={{background:product.pattern}}><span>{product.mark}</span></div><div className="mug-shine"/></div></div>}
+export default function Home(){
+ const [products]=useState<Product[]>(()=>typeof window==="undefined"?DEFAULT_PRODUCTS:loadProducts()); const [cart,setCart]=useState<CartItem[]>([]); const [cartOpen,setCartOpen]=useState(false); const [checkout,setCheckout]=useState(false); const [ordered,setOrdered]=useState(false); const [orderNo,setOrderNo]=useState(""); const [filter,setFilter]=useState("ทั้งหมด");
+ const cats=["ทั้งหมด",...Array.from(new Set(products.map(p=>p.category)))], shown=filter==="ทั้งหมด"?products:products.filter(p=>p.category===filter), count=cart.reduce((s,i)=>s+i.quantity,0), subtotal=cart.reduce((s,i)=>s+i.price*i.quantity,0), shipping=subtotal>=999||subtotal===0?0:60;
+ function add(p:Product){setCart(items=>{const f=items.find(i=>i.id===p.id);return f?items.map(i=>i.id===p.id?{...i,quantity:i.quantity+1}:i):[...items,{...p,quantity:1}]});setCartOpen(true)} function adjust(id:string,n:number){setCart(items=>items.map(i=>i.id===id?{...i,quantity:i.quantity+n}:i).filter(i=>i.quantity>0))}
+ return <main><header className="nav shell"><Link href="/" className="brand"><span className="brand-dot">C</span><span>CupCraft</span></Link><nav><a href="#shop">สินค้า</a><a href="#custom">ออกแบบแก้ว</a><a href="#about">เกี่ยวกับเรา</a></nav><button className="cart-button" onClick={()=>setCartOpen(true)}><ShoppingBag size={20}/><span>ตะกร้า</span>{count>0&&<b>{count}</b>}</button></header>
+ <section className="hero shell"><div className="hero-copy"><p className="eyebrow"><Sparkles size={15}/> แก้วใบเดียวที่เป็นคุณ</p><h1>เติมความพิเศษ<br/>ให้ทุก <em>จิบ</em></h1><p className="hero-sub">เลือกแก้วดีไซน์สวย หรือสร้างลายของคุณเอง เราผลิตอย่างใส่ใจ พร้อมส่งถึงมือคุณ</p><div className="hero-actions"><a className="primary" href="#shop">เลือกซื้อสินค้า <ArrowRight size={18}/></a><a className="text-link" href="#custom">ออกแบบแก้วเอง</a></div><div className="trust"><span><Check/> พิมพ์สีคมชัด</span><span><Check/> ส่งฟรีเมื่อครบ ฿999</span></div></div><div className="hero-art"><div className="sun"/><MugArt large product={products[0]??DEFAULT_PRODUCTS[0]}/><div className="float-card"><span>ผลิตในไทย</span><strong>งานคุณภาพทุกใบ</strong></div></div></section>
+ <section id="shop" className="shop shell section"><div className="section-head"><div><p className="eyebrow">คอลเลกชันของเรา</p><h2>แก้วที่คุณจะหลงรัก</h2></div><p>คัดสรรแก้วคุณภาพดี ใช้ได้ทุกวัน และเหมาะเป็นของขวัญ</p></div><div className="filters">{cats.map(c=><button key={c} onClick={()=>setFilter(c)} className={filter===c?"active":""}>{c}</button>)}</div><div className="product-grid">{shown.map(p=><article className="product-card" key={p.id}>{p.badge&&<span className="badge">{p.badge}</span>}<MugArt product={p}/><div className="product-info"><small>{p.category}</small><h3>{p.name}</h3><p>{p.description}</p><div><strong>{baht(p.price)}</strong><button onClick={()=>add(p)}><Plus size={18}/> เพิ่ม</button></div></div></article>)}</div></section>
+ <section id="custom" className="custom shell section"><div className="custom-art"><MugArt large product={DEFAULT_PRODUCTS[2]}/></div><div className="custom-copy"><p className="eyebrow"><Sparkles size={15}/> MADE BY YOU</p><h2>ลายของคุณ<br/>บนแก้วของเรา</h2><p>อัปโหลดรูป โลโก้ หรือข้อความ แล้วดูภาพตัวอย่างบนแก้วก่อนสั่งผลิต เหมาะสำหรับของขวัญ ทีมงาน และแบรนด์ของคุณ</p><Link className="primary" href="/design"><Upload size={18}/> เริ่มออกแบบแก้ว</Link><small>รองรับ JPG, PNG • พื้นที่พิมพ์ 20 × 9 ซม.</small></div></section>
+ <footer id="about"><div className="shell footer"><div><Link href="/" className="brand"><span className="brand-dot">C</span><span>CupCraft</span></Link><p>แก้วสวย คุณภาพดี ผลิตด้วยความตั้งใจ</p></div><div><strong>ช่วยเหลือ</strong><a href="#shop">วิธีสั่งซื้อ</a><a href="#custom">ออกแบบแก้ว</a></div><div><strong>สำหรับร้าน</strong><Link href="/admin">เข้าสู่ระบบ Admin</Link><a href="mailto:hello@cupcraft.local">ติดต่อเรา</a></div></div></footer>
+ {cartOpen&&<div className="overlay" onMouseDown={()=>setCartOpen(false)}><aside className="drawer" onMouseDown={e=>e.stopPropagation()}><div className="drawer-head"><h2>{checkout?"ข้อมูลจัดส่ง":`ตะกร้าของคุณ (${count})`}</h2><button onClick={()=>{setCartOpen(false);setCheckout(false)}}><X/></button></div>{ordered?<div className="success"><div><Check size={36}/></div><h2>รับคำสั่งซื้อแล้ว</h2><p>เลขที่ {orderNo}<br/>ร้านจะส่งรายละเอียดการชำระเงินให้คุณ</p><button className="primary" onClick={()=>{setOrdered(false);setCart([]);setCartOpen(false);setCheckout(false)}}>กลับไปเลือกสินค้า</button></div>:checkout?<form className="checkout" onSubmit={e=>{e.preventDefault();setOrderNo(`CC${Date.now().toString().slice(-6)}`);setOrdered(true)}}><label>ชื่อผู้รับ<input required placeholder="ชื่อ - นามสกุล"/></label><label>เบอร์โทร<input required placeholder="08x-xxx-xxxx"/></label><label>ที่อยู่จัดส่ง<textarea required rows={4} placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด รหัสไปรษณีย์"/></label><div className="payment"><strong>วิธีชำระเงิน</strong><label><input type="radio" defaultChecked/> โอนเงิน / PromptPay <small>ร้านส่ง QR และตรวจสอบยอดก่อนผลิต</small></label></div><button className="primary wide">ยืนยันคำสั่งซื้อ • {baht(subtotal+shipping)}</button></form>:<><div className="cart-items">{cart.length===0?<div className="empty"><ShoppingBag/><p>ยังไม่มีสินค้าในตะกร้า</p></div>:cart.map(i=><div className="cart-item" key={i.id}><div className="mini-art"><MugArt product={i}/></div><div><h3>{i.name}</h3><span>{baht(i.price)}</span><div className="qty"><button onClick={()=>adjust(i.id,-1)}><Minus size={14}/></button><b>{i.quantity}</b><button onClick={()=>adjust(i.id,1)}><Plus size={14}/></button></div></div><button className="remove" onClick={()=>adjust(i.id,-i.quantity)}><X size={17}/></button></div>)}</div>{cart.length>0&&<div className="cart-total"><p><span>ยอดสินค้า</span><b>{baht(subtotal)}</b></p><p><span>ค่าจัดส่ง</span><b>{shipping?baht(shipping):"ฟรี"}</b></p><div><span>ยอดรวม</span><strong>{baht(subtotal+shipping)}</strong></div><button className="primary wide" onClick={()=>setCheckout(true)}>ดำเนินการสั่งซื้อ <ArrowRight size={18}/></button><small>🔒 ชำระเงินอย่างปลอดภัย</small></div>}</>}</aside></div>}</main>}
