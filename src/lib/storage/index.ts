@@ -23,11 +23,26 @@ export function readR2Config(
   }
 
   return {
-    accountId: environment.R2_ACCOUNT_ID!.trim(),
+    accountId: normalizeAccountId(environment.R2_ACCOUNT_ID!),
     accessKeyId: environment.R2_ACCESS_KEY_ID!.trim(),
     secretAccessKey: environment.R2_SECRET_ACCESS_KEY!.trim(),
     bucketName: environment.R2_BUCKET_NAME!.trim(),
   };
+}
+
+function normalizeAccountId(value: string): string {
+  const normalizedValue = value.trim().replace(/^['"]|['"]$/g, "");
+  if (!normalizedValue.includes("://")) {
+    return normalizedValue;
+  }
+
+  const hostname = new URL(normalizedValue).hostname;
+  const suffix = ".r2.cloudflarestorage.com";
+  if (!hostname.endsWith(suffix)) {
+    throw new Error("R2_ACCOUNT_ID must be a Cloudflare account ID or R2 endpoint URL");
+  }
+
+  return hostname.slice(0, -suffix.length);
 }
 
 let storage: FileStorage | undefined;
