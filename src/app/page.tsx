@@ -1,12 +1,15 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Box, Check, Clock3, Shirt, Sparkles } from "lucide-react";
 import { listPublicProducts } from "@/lib/catalog/product-repository";
+import { query } from "@/lib/database/db";
 
 const PRODUCT_ICONS = { MUG_3D: Box, APPAREL_2D: Shirt } as const;
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const products = await listPublicProducts();
+  const [products,heroVideo] = await Promise.all([listPublicProducts(),query("SELECT 1 FROM site_media WHERE media_key='home_hero_video'")]);
+  const hasHeroVideo=Boolean(heroVideo.rowCount);
   return (
     <main>
       <header className="nav shell">
@@ -17,7 +20,7 @@ export default async function Home() {
 
       <section className="hero shell">
         <div className="hero-copy"><p className="eyebrow"><Sparkles size={15}/> MADE BY YOU</p><h1>เลือกสินค้า<br/>แล้วสร้าง <em>ลายคุณ</em></h1><p className="hero-sub">เลือกชิ้นงานที่ชอบ ไปหน้าออกแบบทันที และดู Live Preview ก่อนตรวจแบบและชำระเงิน</p><div className="hero-actions"><a className="primary" href="#products">เลือกสินค้าเพื่อออกแบบ <ArrowRight size={18}/></a></div><div className="trust"><span><Check/> Preview ก่อนผลิต</span><span><Check/> ไฟล์พิมพ์ความละเอียดสูง</span><span><Check/> ส่งฟรีเมื่อครบ ฿999</span></div></div>
-        <div className="hero-art"><div className="sun"/><div className="mug-scene mug-scene-large"><div className="mug-shadow"/><div className="mug-handle"/><div className="mug-body"><div className="mug-rim"/><div className="mug-design" style={{background:"linear-gradient(135deg,#315c50,#d99569)"}}><span>YOUR STORY</span></div><div className="mug-shine"/></div></div><div className="float-card"><span>ออกแบบออนไลน์</span><strong>เห็นภาพก่อนสั่งจริง</strong></div></div>
+        <div className={`hero-art ${hasHeroVideo?"has-video":""}`}><div className="sun"/>{hasHeroVideo?<video className="hero-preview-video" src="/api/site-media/hero-video" autoPlay muted loop playsInline preload="metadata"/>:<div className="mug-scene mug-scene-large"><div className="mug-shadow"/><div className="mug-handle"/><div className="mug-body"><div className="mug-rim"/><div className="mug-design" style={{background:"linear-gradient(135deg,#315c50,#d99569)"}}><span>YOUR STORY</span></div><div className="mug-shine"/></div></div>}<div className="float-card"><span>ออกแบบออนไลน์</span><strong>เห็นภาพก่อนสั่งจริง</strong></div></div>
       </section>
 
       <section id="products" className="home-product-section">
@@ -26,7 +29,7 @@ export default async function Home() {
             {products.map((product, index) => {
               const Icon = PRODUCT_ICONS[product.editorType];
               const isAvailable = product.status === "AVAILABLE";
-              return <article className={`design-product-card ${isAvailable ? "available" : "coming-soon"}`} key={product.id} style={{"--card-accent":product.accent} as React.CSSProperties}><div className="design-product-visual"><span>0{index + 1}</span><Icon/><small>{product.editorType === "MUG_3D" ? "LIVE 3D PREVIEW" : "FRONT / BACK PREVIEW"}</small></div><div className="design-product-copy"><div><small>{product.categoryName}</small><span className="status-badge">{isAvailable ? <Sparkles/> : <Clock3/>}{product.badge}</span></div><h3>{product.name}</h3><p>{product.description}</p><footer><strong>฿{(product.priceSatang/100).toLocaleString("th-TH")}</strong>{isAvailable ? <Link id={`home-design-${product.slug}`} href={`/design/${product.slug}`}>เลือกและออกแบบ <ArrowRight/></Link> : <span>กำลังเตรียมสินค้า</span>}</footer></div></article>;
+              return <article className={`design-product-card ${isAvailable ? "available" : "coming-soon"}`} key={product.id} style={{"--card-accent":product.accent} as React.CSSProperties}><div className={`design-product-visual ${product.imagePath?"has-image":""}`}><span>0{index + 1}</span>{product.imagePath?<Image src={`/api/products/${product.id}/image`} alt={`รูปสินค้า ${product.name}`} width={640} height={490} unoptimized/>:<Icon/>}<small>{product.editorType === "MUG_3D" ? "LIVE 3D PREVIEW" : "FRONT / BACK PREVIEW"}</small></div><div className="design-product-copy"><div><small>{product.categoryName}</small><span className="status-badge">{isAvailable ? <Sparkles/> : <Clock3/>}{product.badge}</span></div><h3>{product.name}</h3><p>{product.description}</p><footer><strong>฿{(product.priceSatang/100).toLocaleString("th-TH")}</strong>{isAvailable ? <Link id={`home-design-${product.slug}`} href={`/design/${product.slug}`}>เลือกและออกแบบ <ArrowRight/></Link> : <span>กำลังเตรียมสินค้า</span>}</footer></div></article>;
             })}
           </div>
         </div>

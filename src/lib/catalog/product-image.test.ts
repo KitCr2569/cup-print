@@ -1,0 +1,3 @@
+import assert from "node:assert/strict";import test from "node:test";import {hasValidSignature} from "./product-image";
+test("accepts supported image signatures",()=>{assert.equal(hasValidSignature("image/jpeg",new Uint8Array([255,216,255])),true);assert.equal(hasValidSignature("image/png",new Uint8Array([137,80,78,71,13,10,26,10])),true);assert.equal(hasValidSignature("image/webp",new Uint8Array([82,73,70,70,0,0,0,0,87,69,66,80])),true)});
+test("rejects spoofed and unsupported images",()=>{assert.equal(hasValidSignature("image/png",new Uint8Array([255,216,255])),false);assert.equal(hasValidSignature("image/svg+xml",new Uint8Array([60,115,118,103])),false)});

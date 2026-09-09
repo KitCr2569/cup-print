@@ -1,0 +1,4 @@
+export const MAX_HERO_VIDEO_SIZE=30_000_000;
+const EXTENSIONS:Record<string,string>={"video/mp4":"mp4","video/webm":"webm"};
+export async function validateHeroVideo(value:unknown){if(!(value instanceof File)||value.size===0||value.size>MAX_HERO_VIDEO_SIZE)throw new Error("กรุณาใช้วิดีโอ MP4 หรือ WebM ไม่เกิน 30 MB");const extension=EXTENSIONS[value.type];if(!extension)throw new Error("รองรับเฉพาะวิดีโอ MP4 และ WebM");const bytes=new Uint8Array(await value.slice(0,12).arrayBuffer());if(!hasValidVideoSignature(value.type,bytes))throw new Error("เนื้อหาไฟล์ไม่ตรงกับชนิดวิดีโอ");return{file:value,extension}}
+export function hasValidVideoSignature(type:string,bytes:Uint8Array){const text=(start:number,end:number)=>new TextDecoder().decode(bytes.slice(start,end));if(type==="video/mp4")return text(4,8)==="ftyp";if(type==="video/webm")return bytes[0]===0x1a&&bytes[1]===0x45&&bytes[2]===0xdf&&bytes[3]===0xa3;return false}

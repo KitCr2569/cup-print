@@ -1,0 +1,3 @@
+import {isAdmin} from "@/lib/auth/admin";import {query} from "@/lib/database/db";
+export const runtime="nodejs";
+export async function POST(){if(!await isAdmin())return Response.json({error:"Unauthorized"},{status:401});try{await query("ALTER TABLE products ADD COLUMN IF NOT EXISTS image_path text");await query("CREATE TABLE IF NOT EXISTS site_media (media_key text PRIMARY KEY,storage_path text NOT NULL,content_type text NOT NULL,updated_at timestamptz NOT NULL DEFAULT now())");return Response.json({ok:true})}catch(error){console.error("Media migration failed",error);return Response.json({error:"Migration failed"},{status:500})}}
