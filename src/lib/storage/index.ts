@@ -24,9 +24,9 @@ export function readR2Config(
 
   return {
     accountId: normalizeAccountId(environment.R2_ACCOUNT_ID!),
-    accessKeyId: environment.R2_ACCESS_KEY_ID!.trim(),
-    secretAccessKey: environment.R2_SECRET_ACCESS_KEY!.trim(),
-    bucketName: environment.R2_BUCKET_NAME!.trim(),
+    accessKeyId: normalizeCredential(environment.R2_ACCESS_KEY_ID!, "R2_ACCESS_KEY_ID"),
+    secretAccessKey: normalizeCredential(environment.R2_SECRET_ACCESS_KEY!, "R2_SECRET_ACCESS_KEY"),
+    bucketName: normalizeBucketName(environment.R2_BUCKET_NAME!),
   };
 }
 
@@ -38,6 +38,22 @@ function normalizeAccountId(value: string): string {
   }
 
   return accountId;
+}
+
+function normalizeCredential(value: string, name: string): string {
+  const normalizedValue = value.replace(/[\r\n\t ]/g, "").replace(/^['"]|['"]$/g, "");
+  if (!normalizedValue || /[^\x21-\x7E]/.test(normalizedValue)) {
+    throw new Error(`${name} contains invalid characters`);
+  }
+  return normalizedValue;
+}
+
+function normalizeBucketName(value: string): string {
+  const normalizedValue = value.trim().replace(/^['"]|['"]$/g, "");
+  if (!/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(normalizedValue)) {
+    throw new Error("R2_BUCKET_NAME is invalid");
+  }
+  return normalizedValue;
 }
 
 let storage: FileStorage | undefined;
