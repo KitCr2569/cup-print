@@ -28,7 +28,7 @@ function SaveDesignButton({ template }: { template: ProductTemplate }) {
       const response = await fetch("/api/designs", { method: "POST", body: form });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
-      router.push(`/checkout?design=${result.id}`);
+      router.push(`/review/${result.id}`);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "บันทึกไม่สำเร็จ");
       setIsSaving(false);

@@ -3,9 +3,12 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import CheckoutForm, { type DesignSummary } from "@/components/checkout-form";
+import { parseQuantity } from "@/lib/orders/quantity";
 
 export default function CheckoutClient() {
-  const designId = useSearchParams().get("design");
+  const searchParams = useSearchParams();
+  const designId = searchParams.get("design");
+  const initialQuantity = parseQuantity(searchParams.get("quantity"));
   const [design, setDesign] = useState<DesignSummary | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(designId));
 
@@ -22,5 +25,5 @@ export default function CheckoutClient() {
 
   if (isLoading) return <main className="checkout-page">กำลังโหลดข้อมูลสินค้า…</main>;
   if (!design) return <main className="checkout-page"><div className="payment-card"><h1>ไม่พบแบบสินค้า</h1><Link className="primary" href="/design">เลือกสินค้าใหม่</Link></div></main>;
-  return <CheckoutForm design={design} />;
+  return <CheckoutForm design={design} initialQuantity={initialQuantity} />;
 }
