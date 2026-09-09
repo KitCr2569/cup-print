@@ -32,17 +32,12 @@ export function readR2Config(
 
 function normalizeAccountId(value: string): string {
   const normalizedValue = value.trim().replace(/^['"]|['"]$/g, "");
-  if (!normalizedValue.includes("://")) {
-    return normalizedValue;
+  const accountId = normalizedValue.match(/[a-f0-9]{32}/i)?.[0];
+  if (!accountId) {
+    throw new Error("R2_ACCOUNT_ID must contain a 32-character Cloudflare account ID");
   }
 
-  const hostname = new URL(normalizedValue).hostname;
-  const suffix = ".r2.cloudflarestorage.com";
-  if (!hostname.endsWith(suffix)) {
-    throw new Error("R2_ACCOUNT_ID must be a Cloudflare account ID or R2 endpoint URL");
-  }
-
-  return hostname.slice(0, -suffix.length);
+  return accountId;
 }
 
 let storage: FileStorage | undefined;
