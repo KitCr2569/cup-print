@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { query } from "@/lib/database/db";
-import { CERAMIC_MUG_11OZ } from "@/lib/design/product-config";
+import { getAvailableProductById } from "@/lib/design/product-config";
 import { getFileStorage } from "@/lib/storage";
 
 export const runtime = "nodejs";
@@ -18,8 +18,13 @@ function isValidDesignFile(value: FormDataEntryValue | null): value is File {
 export async function POST(request: Request) {
   try {
     const form = await request.formData();
+    const product = getAvailableProductById(String(form.get("productId") || ""));
     const preview = form.get("preview");
     const print = form.get("print");
+
+    if (!product) {
+      return Response.json({ error: "Product is not available" }, { status: 400 });
+    }
 
     if (!isValidDesignFile(preview) || !isValidDesignFile(print)) {
       return Response.json(
@@ -37,7 +42,7 @@ export async function POST(request: Request) {
 
     const template = await query<{ id: string }>(
       "SELECT id FROM product_templates WHERE product_id=$1 ORDER BY version DESC LIMIT 1",
-      [CERAMIC_MUG_11OZ.productId],
+      [product.productId],
     );
     if (!template.rows[0]) {
       return Response.json({ error: "Product template not found" }, { status: 409 });
@@ -54,12 +59,12 @@ export async function POST(request: Request) {
       "INSERT INTO designs(id,product_id,template_id,fabric_json,asset_refs,print_width_cm,print_height_cm,dpi,preview_path,print_path) VALUES($1,$2,$3,$4,'[]',$5,$6,$7,$8,$9)",
       [
         id,
-        CERAMIC_MUG_11OZ.productId,
+        product.productId,
         template.rows[0].id,
         fabricJson,
-        CERAMIC_MUG_11OZ.print.widthCm,
-        CERAMIC_MUG_11OZ.print.heightCm,
-        CERAMIC_MUG_11OZ.print.dpi,
+        product.print.widthCm,
+        product.print.heightCm,
+        product.print.dpi,
         previewPath,
         printPath,
       ],

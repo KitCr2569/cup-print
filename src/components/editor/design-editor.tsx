@@ -31,9 +31,8 @@ import {
   ZoomOut,
 } from "lucide-react";
 import {
-  CERAMIC_MUG_11OZ,
   printPixels,
-  ProductTemplate,
+  type ProductTemplate,
 } from "@/lib/design/product-config";
 import { useDesign } from "./design-provider";
 
@@ -48,9 +47,9 @@ const DEFAULT_ADJUSTMENTS = {
 type Adjustments = typeof DEFAULT_ADJUSTMENTS;
 
 export default function DesignEditor({
-  template = CERAMIC_MUG_11OZ,
+  template,
 }: {
-  template?: ProductTemplate;
+  template: ProductTemplate;
 }) {
   const elementRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<Canvas | null>(null);

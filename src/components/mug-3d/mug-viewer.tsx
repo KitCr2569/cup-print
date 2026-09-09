@@ -14,7 +14,7 @@ import {
 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useDesign } from "@/components/editor/design-provider";
-import { CERAMIC_MUG_11OZ } from "@/lib/design/product-config";
+import type { ProductTemplate } from "@/lib/design/product-config";
 
 // Production view: artwork center is opposite the handle. The handle is at +X,
 // so the camera faces the printable center from -X and the handle stays behind.
@@ -38,18 +38,20 @@ function Mug({
   canvas,
   revision,
   centerOffsetDeg,
+  template,
 }: {
   canvas: HTMLCanvasElement | null;
   revision: number;
   centerOffsetDeg: number;
+  template: ProductTemplate;
 }) {
   const texture = useMemo(
-    () => createTexture(canvas, revision, centerOffsetDeg),
-    [canvas, revision, centerOffsetDeg],
+    () => createTexture(canvas, revision, centerOffsetDeg, template),
+    [canvas, revision, centerOffsetDeg, template],
   );
   useEffect(() => () => texture?.dispose(), [texture]);
 
-  const { scene } = useGLTF("/models/mug-11oz.glb?v=7");
+  const { scene } = useGLTF(template.model.path);
   const model = useMemo(() => {
     const clone = scene.clone(true);
     clone.traverse((object) => {
@@ -58,7 +60,7 @@ function Mug({
       object.receiveShadow = true;
       const source = object.material as MeshPhysicalMaterial;
       const material = source.clone();
-      if (object.name === "MugBodyPrint" && texture) {
+      if (object.name === template.model.printMaterial && texture) {
         material.map = texture;
         material.color.set("#ffffff");
         material.roughness = 0.3;
@@ -67,7 +69,7 @@ function Mug({
       object.material = material;
     });
     return clone;
-  }, [scene, texture]);
+  }, [scene, template.model.printMaterial, texture]);
 
   useEffect(
     () => () => {
@@ -87,6 +89,7 @@ function createTexture(
   canvas: HTMLCanvasElement | null,
   revision: number,
   centerOffsetDeg: number,
+  template: ProductTemplate,
 ) {
   void revision;
   if (!canvas) return null;
@@ -95,12 +98,12 @@ function createTexture(
   texture.minFilter = LinearFilter;
   texture.anisotropy = 8;
   texture.wrapS = RepeatWrapping;
-  const offset = CERAMIC_MUG_11OZ.uv.offsetX + centerOffsetDeg / 360;
+  const offset = template.uv.offsetX + centerOffsetDeg / 360;
   texture.offset.x = ((offset % 1) + 1) % 1;
   return texture;
 }
 
-export default function MugViewer() {
+export default function MugViewer({ template }: { template: ProductTemplate }) {
   const {
     textureCanvas,
     textureRevision,
@@ -157,6 +160,7 @@ export default function MugViewer() {
             canvas={textureCanvas}
             revision={textureRevision}
             centerOffsetDeg={centerOffsetDeg}
+            template={template}
           />
           <ContactShadows
             position={[0, -1.36, 0]}
@@ -219,4 +223,3 @@ export default function MugViewer() {
   );
 }
 
-useGLTF.preload("/models/mug-11oz.glb?v=7");
