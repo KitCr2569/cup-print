@@ -34,11 +34,31 @@ Schema จะถูกสร้างอัตโนมัติใน container
 
 Mesh หลักคือ `MugBodyPrint`, `MugCeramic`, `MugHandle`
 
+## Cloudflare R2
+
+ไฟล์แบบแก้ว ไฟล์พิมพ์ และสลิปเก็บใน private R2 bucket ผ่าน S3-compatible API
+
+1. เปิด Cloudflare Dashboard → **R2 Object Storage** แล้วสร้าง bucket `cup-print-production`
+2. เปิด **Manage R2 API Tokens** แล้วสร้าง token แบบ **Object Read & Write** จำกัดเฉพาะ bucket นี้
+3. เพิ่มตัวแปรต่อไปนี้ใน `.env.local` และ Vercel Project Settings → Environment Variables:
+
+```text
+R2_ACCOUNT_ID
+R2_ACCESS_KEY_ID
+R2_SECRET_ACCESS_KEY
+R2_BUCKET_NAME=cup-print-production
+```
+
+4. Redeploy บน Vercel หลังเพิ่มตัวแปร ห้าม commit หรือส่งค่า token ผ่านแชต
+5. ทดสอบสร้างแบบและตรวจ object ใน `designs/<design-id>/`
+6. ทดสอบสร้างออเดอร์ อัปโหลดสลิป และตรวจ object ใน `payments/<order-id>/`
+7. ทดสอบ Admin ดาวน์โหลดไฟล์พิมพ์ได้ โดย bucket ไม่ต้องเปิด public access
+
 ## Production checklist
 
-- เปลี่ยน local storage ใน `src/lib/storage/local.ts` เป็น Cloudflare R2/S3
 - ใช้ PostgreSQL managed database และรัน schema ผ่านช่องทางส่วนตัว
 - สุ่ม `AUTH_SECRET` อย่างน้อย 32 bytes และตั้งรหัส Admin ใหม่
 - ใส่ PromptPay ID ของร้านจริง
+- จำกัด R2 API token เฉพาะ bucket และหมุน token เมื่อสงสัยว่ารั่ว
 - เปิด HTTPS, backup ฐานข้อมูล และ object-storage lifecycle/versioning
 - ทดสอบไฟล์พิมพ์กับเครื่องจริงและยืนยัน UV ด้วยแก้วตัวอย่างก่อนรับออเดอร์
