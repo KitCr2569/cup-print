@@ -1,5 +1,5 @@
-import "server-only";import {cookies} from "next/headers";import {SignJWT,jwtVerify} from "jose";
-const COOKIE="cupstory_admin";function key(){const secret=process.env.AUTH_SECRET||process.env.ADMIN_PASSWORD;if(!secret)throw new Error("AUTH_SECRET or ADMIN_PASSWORD is not configured");return new TextEncoder().encode(secret)}
+import "server-only";import {cookies} from "next/headers";import {createHash} from "node:crypto";import {SignJWT,jwtVerify} from "jose";
+const COOKIE="cupstory_admin";function key(){const secret=process.env.AUTH_SECRET||process.env.ADMIN_PASSWORD;if(!secret)throw new Error("AUTH_SECRET or ADMIN_PASSWORD is not configured");return createHash("sha256").update(secret).digest()}
 export async function createAdminSession(){const token=await new SignJWT({role:"ADMIN"}).setProtectedHeader({alg:"HS256"}).setIssuedAt().setExpirationTime("8h").sign(key());(await cookies()).set(COOKIE,token,{httpOnly:true,sameSite:"strict",secure:process.env.NODE_ENV==="production",path:"/",maxAge:28800})}
 export async function isAdmin(){try{const token=(await cookies()).get(COOKIE)?.value;if(!token)return false;const {payload}=await jwtVerify(token,key());return payload.role==="ADMIN"}catch{return false}}
 export async function clearAdminSession(){(await cookies()).delete(COOKIE)}
