@@ -1,0 +1,2 @@
+import assert from "node:assert/strict";import test from "node:test";import {checkRateLimit,clearRateLimit} from "./rate-limit";
+test("rate limit blocks excess attempts and resets",()=>{clearRateLimit("a");assert.equal(checkRateLimit("a",2,1000,0).isAllowed,true);assert.equal(checkRateLimit("a",2,1000,1).isAllowed,true);assert.equal(checkRateLimit("a",2,1000,2).isAllowed,false);assert.equal(checkRateLimit("a",2,1000,1001).isAllowed,true)});

@@ -1,59 +1,7 @@
-import { query } from "@/lib/database/db";
+﻿import { query } from "@/lib/database/db";
 import { getFileStorage } from "@/lib/storage";
-
-export const runtime = "nodejs";
-const MAX_SLIP_SIZE = 10_000_000;
-const SLIP_EXTENSIONS: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-};
-
-export async function POST(
-  request: Request,
-  context: RouteContext<"/api/orders/[number]/slip">,
-) {
-  try {
-    const { number } = await context.params;
-    const form = await request.formData();
-    const slip = form.get("slip");
-    const phone = String(form.get("phone") || "");
-    const extension = slip instanceof File ? SLIP_EXTENSIONS[slip.type] : undefined;
-
-    if (
-      !(slip instanceof File) ||
-      !extension ||
-      slip.size === 0 ||
-      slip.size > MAX_SLIP_SIZE
-    ) {
-      return Response.json(
-        { error: "กรุณาใช้รูปสลิป JPG หรือ PNG ไม่เกิน 10 MB" },
-        { status: 400 },
-      );
-    }
-
-    const order = (
-      await query<{ id: string; phone: string }>(
-        "SELECT id,phone FROM orders WHERE order_number=$1",
-        [number],
-      )
-    ).rows[0];
-    if (!order || order.phone !== phone) {
-      return Response.json({ error: "ข้อมูลออเดอร์ไม่ถูกต้อง" }, { status: 403 });
-    }
-
-    const storagePath = await getFileStorage().storeFile(
-      `payments/${order.id}`,
-      slip,
-      extension,
-    );
-    await query(
-      "UPDATE payments SET slip_path=$1,status='UNDER_REVIEW' WHERE order_id=$2",
-      [storagePath, order.id],
-    );
-
-    return Response.json({ ok: true });
-  } catch (error) {
-    console.error("Unable to upload payment slip", error);
-    return Response.json({ error: "ไม่สามารถส่งสลิปได้" }, { status: 500 });
-  }
-}
+import { hasValidSignature } from "@/lib/catalog/product-image";
+import { checkRateLimit } from "@/lib/security/rate-limit";
+import { getClientIp, rateLimitedResponse } from "@/lib/security/request";
+export const runtime="nodejs";const MAX_SLIP_SIZE=10_000_000;const EXTENSIONS:Record<string,string>={"image/jpeg":"jpg","image/png":"png"};
+export async function POST(request:Request,context:RouteContext<"/api/orders/[number]/slip">){const limit=checkRateLimit(`slip:${getClientIp(request)}`,10,15*60*1000);if(!limit.isAllowed)return rateLimitedResponse(limit.retryAfterSeconds);try{const {number}=await context.params;if(!/^CS\d{6}[A-F0-9]{8}$/.test(number))return Response.json({error:"หมายเลขออเดอร์ไม่ถูกต้อง"},{status:400});const form=await request.formData(),slip=form.get("slip"),phone=String(form.get("phone")||"").replace(/[ -]/g,"");const extension=slip instanceof File?EXTENSIONS[slip.type]:undefined;if(!(slip instanceof File)||!extension||slip.size===0||slip.size>MAX_SLIP_SIZE)return Response.json({error:"กรุณาใช้รูปสลิป JPG หรือ PNG ไม่เกิน 10 MB"},{status:400});const bytes=new Uint8Array(await slip.slice(0,12).arrayBuffer());if(!hasValidSignature(slip.type,bytes))return Response.json({error:"เนื้อหาไฟล์ไม่ตรงกับชนิดรูป"},{status:400});const order=(await query<{id:string;phone:string;status:string;payment_status:string}>("SELECT o.id,o.phone,o.status,p.status AS payment_status FROM orders o JOIN payments p ON p.order_id=o.id WHERE o.order_number=$1",[number])).rows[0];if(!order||order.phone!==phone)return Response.json({error:"ข้อมูลออเดอร์ไม่ถูกต้อง"},{status:403});if(order.status!=="PENDING_PAYMENT"||order.payment_status==="PAID")return Response.json({error:"ออเดอร์นี้ไม่สามารถส่งสลิปเพิ่มได้"},{status:409});const storagePath=await getFileStorage().storeFile(`payments/${order.id}`,slip,extension);await query("UPDATE payments SET slip_path=$1,status='UNDER_REVIEW' WHERE order_id=$2 AND status<>'PAID'",[storagePath,order.id]);return Response.json({ok:true})}catch(error){console.error("Unable to upload payment slip",error);return Response.json({error:"ไม่สามารถส่งสลิปได้"},{status:500})}}

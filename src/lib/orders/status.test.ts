@@ -1,0 +1,2 @@
+import assert from "node:assert/strict";import test from "node:test";import {canTransitionOrder,isOrderStatus} from "./status";
+test("allows production sequence",()=>{assert.equal(canTransitionOrder("PAID","DESIGN_APPROVED"),true);assert.equal(canTransitionOrder("PACKING","SHIPPED"),true)});test("blocks unsafe jumps",()=>{assert.equal(canTransitionOrder("PENDING_PAYMENT","SHIPPED"),false);assert.equal(canTransitionOrder("COMPLETED","PAID"),false);assert.equal(isOrderStatus("BROKEN"),false)});
