@@ -12,8 +12,8 @@ export async function generateMetadata({ params }: { params: Promise<{ productSl
 export default async function ProductDesignPage({ params }: { params: Promise<{ productSlug: string }> }) {
   const product = await findAvailableProductBySlug((await params).productSlug);
   if (!product || !product.hasTemplate) notFound();
-  const capability = getAvailableProductById(product.id);
+  const capability = getAvailableProductById(product.id) ?? (product.editorType === "MUG_3D" ? getAvailableProductById("ceramic-mug-11oz") : undefined);
   if (!capability) notFound();
-  const template = { ...capability, slug: product.slug, name: product.name, category: product.categoryName, description: product.description, price: product.priceSatang / 100, accent: product.accent, badge: product.badge, printOptions: product.printOptions };
+  const template = { ...capability, slug: product.slug, name: product.name, category: product.categoryName, description: product.description, price: product.priceSatang / 100, accent: product.accent, badge: product.badge, printOptions: product.printOptions, mug: {capacityOz:product.templateSettings.capacityOz,diameterCm:product.templateSettings.diameterCm,heightCm:product.templateSettings.heightCm}, print:{...capability.print,dpi:product.templateSettings.dpi,safeMarginCm:product.templateSettings.safeMarginCm,bleedCm:product.templateSettings.bleedCm} };
   return <DesignWorkspace template={template} />;
 }
