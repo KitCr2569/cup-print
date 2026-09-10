@@ -1,5 +1,6 @@
 import "server-only";
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   NoSuchKey,
   PutObjectCommand,
@@ -45,6 +46,11 @@ export class R2Storage implements FileStorage {
     );
 
     return objectKey;
+  }
+
+  async deleteFile(storagePath: string): Promise<void> {
+    const objectKey = validateObjectKey(storagePath);
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.config.bucketName, Key: objectKey }));
   }
 
   async loadFile(storagePath: string): Promise<StoredFile | null> {

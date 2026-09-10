@@ -63,3 +63,5 @@
 @media(max-width:520px){.home-flow>div{grid-template-columns:1fr}.home-flow article{border-right:0;border-bottom:1px solid var(--line)!important}.admin-product-fields{grid-template-columns:1fr}.admin-product-fields .full{grid-column:auto}.site-media-manager>header h1{font-size:34px}}
 
 .policy-page{min-height:100vh;display:grid;place-items:center;padding:40px;background:#ece9df}.policy-page article{width:min(720px,100%);background:#fffdf9;border:1px solid var(--line);border-radius:24px;padding:clamp(28px,5vw,60px);box-shadow:0 22px 70px #173c3214}.policy-page h1{font:600 clamp(38px,6vw,64px) var(--font-display);margin:10px 0 22px}.policy-page article>p:not(.eyebrow){color:var(--muted);line-height:1.9;margin:0 0 18px}.policy-page .primary{display:inline-flex;margin-top:12px}
+
+.media-actions{display:flex;gap:10px;align-items:center}.media-actions button{min-height:42px}
