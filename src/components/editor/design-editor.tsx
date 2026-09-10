@@ -299,6 +299,18 @@ export default function DesignEditor({
     changeActive((object, canvas) => canvas.centerObject(object));
   }
 
+  function centerActiveOnSide(side: "LEFT" | "RIGHT") {
+    changeActive((object) => {
+      object.set({
+        left: WORKING_WIDTH * (side === "LEFT" ? 0.25 : 0.75),
+        top: workingHeight / 2,
+        originX: "center",
+        originY: "center",
+      });
+      object.setCoords();
+    });
+  }
+
   function fitActive() {
     changeActive((object, canvas) => {
       const marginX =
@@ -410,6 +422,7 @@ export default function DesignEditor({
         <button disabled={!hasSelection} onClick={() => rotateActive(-5)} title="หมุนซ้าย"><RotateCcw /></button>
         <button disabled={!hasSelection} onClick={() => rotateActive(5)} title="หมุนขวา"><RotateCw /></button>
         <button disabled={!hasSelection} onClick={centerActive}>Center</button>
+        {printOption==="TWO_SIDES"&&<><button disabled={!hasSelection} onClick={()=>centerActiveOnSide("LEFT")}>กลางซ้าย</button><button disabled={!hasSelection} onClick={()=>centerActiveOnSide("RIGHT")}>กลางขวา</button></>}
         <button disabled={!hasSelection} onClick={fitActive}><Maximize2 /> Fit</button>
         <button disabled={!hasSelection} onClick={() => flipActive("x")}><FlipHorizontal2 /> Mirror</button>
         <button disabled={!hasSelection} onClick={() => flipActive("y")} title="กลับด้านบนล่าง"><FlipVertical2 /></button>
@@ -437,7 +450,7 @@ export default function DesignEditor({
         <div className="print-canvas" style={{ aspectRatio: `${template.print.widthCm}/${template.print.heightCm}` }}>
           <canvas ref={elementRef} />
           <div className="safe-guide" style={{ inset: `${(template.print.safeMarginCm / template.print.heightCm) * 100}% ${(template.print.safeMarginCm / template.print.widthCm) * 100}%` }}><span>SAFE AREA</span></div>
-          {printOption==="TWO_SIDES"&&<div className="two-side-guides" aria-hidden="true"><span>ด้านซ้าย</span><i/><span>ด้านขวา</span></div>}
+          {printOption==="TWO_SIDES"&&<div className="two-side-guides" aria-hidden="true"><div><span>ด้านซ้าย</span><b><i/>CENTER<br/>5 × 4.5 cm</b></div><em/><div><span>ด้านขวา</span><b><i/>CENTER<br/>15 × 4.5 cm</b></div></div>}
         </div>
         <div className="dimension width">{template.print.widthCm} cm</div>
         <div className="dimension height">{template.print.heightCm} cm</div>
