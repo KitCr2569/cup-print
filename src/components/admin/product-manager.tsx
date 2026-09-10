@@ -3,10 +3,11 @@ import Image from "next/image";
 import { FormEvent, useState } from "react";
 import { Check, Pencil, Plus, X } from "lucide-react";
 import type { CatalogProduct, ProductCategory } from "@/lib/catalog/product-repository";
+import { DEFAULT_PRINT_OPTIONS } from "@/lib/design/print-option";
 import { EDITOR_TYPES, PRODUCT_STATUSES, type EditorType, type ProductStatus } from "@/lib/catalog/product-input";
 
-type EditorProduct = Partial<CatalogProduct> & { id:string;slug:string;name:string;description:string;priceSatang:number;categoryId:string;status:ProductStatus;sortOrder:number;editorType:EditorType;accent:string;badge:string };
-const EMPTY:EditorProduct={id:"",slug:"",name:"",description:"",priceSatang:0,categoryId:"",status:"COMING_SOON",sortOrder:10,editorType:"MUG_3D",accent:"#dce8d5",badge:"เร็ว ๆ นี้"};
+type EditorProduct = Partial<CatalogProduct> & { id:string;slug:string;name:string;description:string;priceSatang:number;categoryId:string;status:ProductStatus;sortOrder:number;editorType:EditorType;accent:string;badge:string;printOptions:CatalogProduct["printOptions"] };
+const EMPTY:EditorProduct={id:"",slug:"",name:"",description:"",priceSatang:0,categoryId:"",status:"COMING_SOON",sortOrder:10,editorType:"MUG_3D",accent:"#dce8d5",badge:"เร็ว ๆ นี้",printOptions:DEFAULT_PRINT_OPTIONS};
 export default function ProductManager({products,categories}:{products:CatalogProduct[];categories:ProductCategory[]}){
  const [editing,setEditing]=useState<EditorProduct|null>(null);const [image,setImage]=useState<File|null>(null);const [error,setError]=useState("");const [isSaving,setIsSaving]=useState(false);
  function open(product?:CatalogProduct){setError("");setImage(null);setEditing(product?{...product}: {...EMPTY,categoryId:categories[0]?.id||""})}

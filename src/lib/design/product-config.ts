@@ -1,3 +1,5 @@
+import type { PrintOption } from "./print-option";
+
 export type ProductStatus = "AVAILABLE" | "COMING_SOON";
 export type EditorType = "MUG_3D" | "APPAREL_2D";
 
@@ -12,6 +14,7 @@ export type ProductTemplate = {
   editorType: EditorType;
   accent: string;
   badge: string;
+  printOptions?: PrintOption[];
   mug: { capacityOz: number; diameterCm: number; heightCm: number };
   print: { widthCm: number; heightCm: number; dpi: number; safeMarginCm: number; bleedCm: number };
   model: { path: string; printMaterial: string; ceramicMaterial: string; handleMaterial: string };

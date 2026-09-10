@@ -5,7 +5,7 @@ export type DesignSummaryRow = {
   product_id: string;
   name: string;
   description: string;
-  price_satang: number;
+  price_satang: number; unit_price_satang: number; print_option: string; print_placement: string | null;
   print_width_cm: string;
   print_height_cm: string;
   dpi: number;
@@ -14,7 +14,7 @@ export type DesignSummaryRow = {
 export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const design = (await query<DesignSummaryRow>(
-    "SELECT d.id,d.product_id,p.name,p.description,p.price_satang,d.print_width_cm,d.print_height_cm,d.dpi FROM designs d JOIN products p ON p.id=d.product_id WHERE d.id=$1 AND p.active=true",
+    "SELECT d.id,d.product_id,p.name,p.description,p.price_satang,d.unit_price_satang,d.print_option,d.print_placement,d.print_width_cm,d.print_height_cm,d.dpi FROM designs d JOIN products p ON p.id=d.product_id WHERE d.id=$1 AND p.active=true",
     [id],
   )).rows[0];
   if (!design) return Response.json({ error: "Not found" }, { status: 404 });
@@ -23,7 +23,9 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
     productId: design.product_id,
     name: design.name,
     description: design.description,
-    priceSatang: design.price_satang,
+    priceSatang: design.unit_price_satang,
+    printOption: design.print_option,
+    printPlacement: design.print_placement,
     printWidthCm: Number(design.print_width_cm),
     printHeightCm: Number(design.print_height_cm),
     dpi: design.dpi,

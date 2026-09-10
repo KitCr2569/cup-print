@@ -14,6 +14,6 @@ export default async function ProductDesignPage({ params }: { params: Promise<{ 
   if (!product || !product.hasTemplate) notFound();
   const capability = getAvailableProductById(product.id);
   if (!capability) notFound();
-  const template = { ...capability, slug: product.slug, name: product.name, category: product.categoryName, description: product.description, price: product.priceSatang / 100, accent: product.accent, badge: product.badge };
+  const template = { ...capability, slug: product.slug, name: product.name, category: product.categoryName, description: product.description, price: product.priceSatang / 100, accent: product.accent, badge: product.badge, printOptions: product.printOptions };
   return <DesignWorkspace template={template} />;
 }

@@ -34,6 +34,7 @@ import {
   printPixels,
   type ProductTemplate,
 } from "@/lib/design/product-config";
+import type { PrintOptionType, PrintPlacement } from "@/lib/design/print-option";
 import { useDesign } from "./design-provider";
 
 const WORKING_WIDTH = 800;
@@ -48,8 +49,12 @@ type Adjustments = typeof DEFAULT_ADJUSTMENTS;
 
 export default function DesignEditor({
   template,
+  printOption,
+  placement,
 }: {
   template: ProductTemplate;
+  printOption: PrintOptionType;
+  placement: PrintPlacement | null;
 }) {
   const elementRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<Canvas | null>(null);
@@ -78,7 +83,7 @@ export default function DesignEditor({
 
     const notify = () => {
       setTextureCanvas(
-        createMugWrapTexture(canvas.toCanvasElement(1), template),
+        createMugWrapTexture(canvas.toCanvasElement(1), template, printOption, placement),
       );
       publishChange(canvas.toJSON() as Record<string, unknown>);
     };
@@ -432,6 +437,7 @@ export default function DesignEditor({
         <div className="print-canvas" style={{ aspectRatio: `${template.print.widthCm}/${template.print.heightCm}` }}>
           <canvas ref={elementRef} />
           <div className="safe-guide" style={{ inset: `${(template.print.safeMarginCm / template.print.heightCm) * 100}% ${(template.print.safeMarginCm / template.print.widthCm) * 100}%` }}><span>SAFE AREA</span></div>
+          {printOption==="TWO_SIDES"&&<div className="two-side-guides" aria-hidden="true"><span>ด้านซ้าย</span><i/><span>ด้านขวา</span></div>}
         </div>
         <div className="dimension width">{template.print.widthCm} cm</div>
         <div className="dimension height">{template.print.heightCm} cm</div>
@@ -482,6 +488,8 @@ function readImageAdjustments(image: FabricImage): Adjustments {
 function createMugWrapTexture(
   designCanvas: HTMLCanvasElement,
   template: ProductTemplate,
+  printOption: PrintOptionType,
+  placement: PrintPlacement | null,
 ) {
   const circumference = Math.PI * template.mug.diameterCm;
   const wrapWidth = Math.round(
@@ -494,7 +502,9 @@ function createMugWrapTexture(
   if (!context) return designCanvas;
   context.fillStyle = "#fffdf8";
   context.fillRect(0, 0, output.width, output.height);
-  const gap = (output.width - designCanvas.width) / 2;
-  context.drawImage(designCanvas, gap, 0);
+  const baseX = (output.width - designCanvas.width) / 2;
+  const quarterTurn = output.width / 4;
+  const placementOffset = printOption === "ONE_SIDE" && placement === "LEFT" ? -quarterTurn : printOption === "ONE_SIDE" && placement === "RIGHT" ? quarterTurn : 0;
+  context.drawImage(designCanvas, baseX + placementOffset, 0);
   return output;
 }
