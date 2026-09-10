@@ -48,7 +48,7 @@ export default function DesignWorkspace({ template }: { template: ProductTemplat
   const editorTemplate={...template,price:selected.priceSatang/100,print:{...template.print,widthCm:selected.widthCm,heightCm:selected.heightCm}};
   return <DesignProvider>
     <style jsx global>{`
-      .two-side-guides { position: absolute; inset: 5.555% 5%; display: grid; grid-template-columns: 40% 10% 40%; pointer-events: none; z-index: 12; }
+      .two-side-guides { position: absolute; inset: 5.555% 5%; display: grid; grid-template-columns: 4fr 1fr 4fr; pointer-events: none; z-index: 12; }
       .two-side-guides > div { position: relative; border: 2px dashed #df8250; border-radius: 8px; background: #fff4ed22; }
       .two-side-guides > div > span { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); color: #874224; background: #fff8f2e8; border-radius: 999px; padding: 3px 8px; font-size: 10px; font-weight: 800; white-space: nowrap; }
       .two-side-guides > div > b { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); color: #874224; text-align: center; font: 800 9px/1.35 sans-serif; white-space: nowrap; }
