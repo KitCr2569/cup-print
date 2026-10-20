@@ -13,7 +13,7 @@ export default async function Home() {
   return (
     <main>
       <header className="nav shell">
-        <Link href="/" className="brand"><span className="brand-dot">C</span><span>CupCraft</span></Link>
+        <Link href="/" className="brand"><span className="brand-dot">C</span><span>Cup Story</span></Link>
         <nav><a href="#products">เลือกสินค้า</a><a href="#how-it-works">วิธีสั่งซื้อ</a><a href="#about">เกี่ยวกับเรา</a></nav>
         <a className="ghost-button" href="#products">เริ่มออกแบบ <ArrowRight size={16}/></a>
       </header>
@@ -37,7 +37,7 @@ export default async function Home() {
 
       <section id="how-it-works" className="home-flow shell section"><p className="eyebrow">HOW IT WORKS</p><h2>สั่งงานง่ายใน 4 ขั้นตอน</h2><div><article><b>01</b><h3>เลือกสินค้า</h3><p>เลือกชนิดสินค้าจากหน้านี้</p></article><article><b>02</b><h3>ออกแบบ</h3><p>อัปโหลดรูป เพิ่มข้อความ ดู Preview</p></article><article><b>03</b><h3>ตรวจแบบ</h3><p>เช็กสี ตำแหน่ง ขนาด และจำนวน</p></article><article><b>04</b><h3>ชำระเงิน</h3><p>กรอกที่อยู่ จ่าย PromptPay และแนบสลิป</p></article></div></section>
 
-      <footer id="about"><div className="shell footer"><div><Link href="/" className="brand"><span className="brand-dot">C</span><span>CupCraft</span></Link><p>งานพิมพ์ที่เริ่มจากไอเดียของคุณ</p></div><div><strong>เริ่มต้น</strong><a href="#products">เลือกสินค้า</a><a href="#how-it-works">วิธีสั่งซื้อ</a></div><div><strong>สำหรับร้าน</strong><Link href="/admin">เข้าสู่ระบบ Admin</Link><a href="mailto:hello@cupcraft.local">ติดต่อเรา</a></div></div></footer>
+      <footer id="about"><div className="shell footer"><div><Link href="/" className="brand"><span className="brand-dot">C</span><span>Cup Story</span></Link><p>งานพิมพ์ที่เริ่มจากไอเดียของคุณ</p></div><div><strong>เริ่มต้น</strong><a href="#products">เลือกสินค้า</a><a href="#how-it-works">วิธีสั่งซื้อ</a></div><div><strong>สำหรับร้าน</strong><Link href="/admin">เข้าสู่ระบบ Admin</Link><a href="mailto:hello@cupstory.local">ติดต่อเรา</a></div></div></footer>
     </main>
   );
 }
