@@ -10,24 +10,33 @@ import {
   filters,
 } from "fabric";
 import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   ArrowDown,
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  Bold,
   Check,
+  ChevronsDown,
+  ChevronsUp,
   Copy,
   Download,
   FlipHorizontal2,
   FlipVertical2,
   ImagePlus,
+  Italic,
   Maximize2,
   Palette,
   PaintBucket,
+  Redo2,
   RotateCcw,
   RotateCw,
   SlidersHorizontal,
   Trash2,
   Type,
+  Undo2,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -36,6 +45,9 @@ import {
   type ProductTemplate,
 } from "@/lib/design/product-config";
 import type { PrintOptionType, PrintPlacement } from "@/lib/design/print-option";
+import { EditorHistory } from "@/lib/design/editor-history";
+import { DEFAULT_FONT_FAMILY, EDITOR_FONTS } from "@/lib/design/editor-fonts";
+import LayerPanel, { type EditorLayer } from "./layer-panel";
 import { useDesign } from "./design-provider";
 
 const WORKING_WIDTH = 800;
@@ -68,15 +80,26 @@ export default function DesignEditor({
   const elementRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<Canvas | null>(null);
   const notifyRef = useRef<(() => void) | null>(null);
+  const historyRef = useRef(new EditorHistory());
+  const isRestoringRef = useRef(false);
   const { setTextureCanvas, publishChange, registerExporter } = useDesign();
   const [background, setBackground] = useState("#fffdf8");
   const [hasSelection, setHasSelection] = useState(false);
   const [selectedIsImage, setSelectedIsImage] = useState(false);
+  const [selectedIsText, setSelectedIsText] = useState(false);
   const [selectionAngle, setSelectionAngle] = useState(0);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustments, setAdjustments] = useState<Adjustments>(DEFAULT_ADJUSTMENTS);
   const [colorOpen, setColorOpen] = useState(false);
   const [activeFill, setActiveFill] = useState(FALLBACK_FILL);
+  const [layers, setLayers] = useState<EditorLayer[]>([]);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
+  const [fontFamily, setFontFamily] = useState(DEFAULT_FONT_FAMILY);
+  const [fontSize, setFontSize] = useState(38);
+  const [isBold, setIsBold] = useState(false);
+  const [isItalic, setIsItalic] = useState(false);
+  const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("center");
   const workingHeight = Math.round(
     (WORKING_WIDTH * template.print.heightCm) / template.print.widthCm,
   );
@@ -92,11 +115,35 @@ export default function DesignEditor({
     });
     fabricRef.current = canvas;
 
-    const notify = () => {
+    const refreshLayers = () => {
+      setLayers(
+        canvas.getObjects().map((object, index) => ({
+          index,
+          label: describeLayer(object),
+          kind: layerKind(object),
+          isVisible: object.visible !== false,
+          isLocked: object.selectable === false,
+        })),
+      );
+    };
+
+    const record = () => {
+      if (isRestoringRef.current) return;
+      historyRef.current.push(JSON.stringify(canvas.toJSON()));
+      setHistoryState(historyRef.current.state());
+    };
+
+    const syncPreview = () => {
       setTextureCanvas(
         createMugWrapTexture(canvas.toCanvasElement(1), template, printOption, placement),
       );
       publishChange(canvas.toJSON() as Record<string, unknown>);
+      refreshLayers();
+    };
+
+    const notify = () => {
+      syncPreview();
+      record();
     };
     notifyRef.current = notify;
 
@@ -127,11 +174,28 @@ export default function DesignEditor({
 
     const selection = () => {
       const active = canvas.getActiveObject();
+      const objectIndex = active ? canvas.getObjects().indexOf(active) : -1;
       setHasSelection(Boolean(active));
+      setActiveIndex(objectIndex >= 0 ? objectIndex : null);
       setSelectionAngle(Math.round(active?.angle ?? 0));
       const isImage = active instanceof FabricImage;
       setSelectedIsImage(isImage);
-      if (active) setActiveFill(readFillColor(active));
+      const isText = active instanceof Textbox;
+      setSelectedIsText(isText);
+      if (active) {
+        setActiveFill(readFillColor(active));
+        if (active.visible === false) {
+          setActiveFill(FALLBACK_FILL);
+        }
+      }
+      if (isText) {
+        const text = active as Textbox;
+        setFontFamily(typeof text.fontFamily === "string" ? text.fontFamily : DEFAULT_FONT_FAMILY);
+        setFontSize(Math.round(text.fontSize ?? 38));
+        setIsBold(String(text.fontWeight) === "bold" || Number(text.fontWeight) >= 600);
+        setIsItalic(text.fontStyle === "italic");
+        setTextAlign(normalizeTextAlign(text.textAlign));
+      }
       if (isImage) {
         setAdjustments(readImageAdjustments(active));
         setColorOpen(false);
@@ -145,6 +209,8 @@ export default function DesignEditor({
     canvas.on("object:added", notify);
     canvas.on("object:modified", notify);
     canvas.on("object:removed", notify);
+    canvas.on("text:changed", syncPreview);
+    canvas.on("text:editing:exited", notify);
     canvas.on("object:rotating", selection);
     canvas.on("selection:created", selection);
     canvas.on("selection:updated", selection);
@@ -155,7 +221,7 @@ export default function DesignEditor({
       top: 155,
       width: 260,
       fontSize: 40,
-      fontFamily: "Arial",
+      fontFamily: DEFAULT_FONT_FAMILY,
       fontWeight: "bold",
       textAlign: "center",
       fill: "#315c50",
@@ -163,6 +229,8 @@ export default function DesignEditor({
     canvas.add(starter);
     canvas.setActiveObject(starter);
     canvas.renderAll();
+    historyRef.current.push(JSON.stringify(canvas.toJSON()));
+    setHistoryState(historyRef.current.state());
     selection();
     notify();
 
@@ -176,6 +244,176 @@ export default function DesignEditor({
     // Fabric canvas must be created exactly once for this mounted editor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) {
+        return;
+      }
+      if (!(event.ctrlKey || event.metaKey)) return;
+      if (event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) redo();
+        else undo();
+      } else if (event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
+  async function restore(snapshot: string) {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    isRestoringRef.current = true;
+    historyRef.current.beginRestore();
+    try {
+      await canvas.loadFromJSON(snapshot);
+      canvas.renderAll();
+      setActiveIndex(null);
+      setHasSelection(false);
+      setColorOpen(false);
+      setAdjustOpen(false);
+      setTextureCanvas(
+        createMugWrapTexture(canvas.toCanvasElement(1), template, printOption, placement),
+      );
+      publishChange(canvas.toJSON() as Record<string, unknown>);
+      setLayers(
+        canvas.getObjects().map((object, index) => ({
+          index,
+          label: describeLayer(object),
+          kind: layerKind(object),
+          isVisible: object.visible !== false,
+          isLocked: object.selectable === false,
+        })),
+      );
+    } finally {
+      historyRef.current.endRestore();
+      isRestoringRef.current = false;
+      setHistoryState(historyRef.current.state());
+    }
+  }
+
+  function undo() {
+    if (isRestoringRef.current) return;
+    const snapshot = historyRef.current.undo();
+    setHistoryState(historyRef.current.state());
+    if (snapshot) void restore(snapshot);
+  }
+
+  function redo() {
+    if (isRestoringRef.current) return;
+    const snapshot = historyRef.current.redo();
+    setHistoryState(historyRef.current.state());
+    if (snapshot) void restore(snapshot);
+  }
+
+  function objectAt(index: number) {
+    return fabricRef.current?.getObjects()[index];
+  }
+
+  function selectLayer(index: number) {
+    const canvas = fabricRef.current;
+    const object = objectAt(index);
+    if (!canvas || !object) return;
+    canvas.setActiveObject(object);
+    canvas.requestRenderAll();
+    setActiveIndex(index);
+    setHasSelection(true);
+  }
+
+  function toggleLayerVisible(index: number) {
+    const canvas = fabricRef.current;
+    const object = objectAt(index);
+    if (!canvas || !object) return;
+    const nextVisible = object.visible === false;
+    object.set({ visible: nextVisible, evented: nextVisible });
+    if (!nextVisible && canvas.getActiveObject() === object) canvas.discardActiveObject();
+    canvas.requestRenderAll();
+    notifyRef.current?.();
+  }
+
+  function toggleLayerLock(index: number) {
+    const canvas = fabricRef.current;
+    const object = objectAt(index);
+    if (!canvas || !object) return;
+    const isLocked = object.selectable === false;
+    object.set({
+      selectable: isLocked,
+      evented: isLocked,
+      lockMovementX: !isLocked,
+      lockMovementY: !isLocked,
+      lockScalingX: !isLocked,
+      lockScalingY: !isLocked,
+      lockRotation: !isLocked,
+      hasControls: isLocked,
+    });
+    if (!isLocked && canvas.getActiveObject() === object) canvas.discardActiveObject();
+    canvas.requestRenderAll();
+    notifyRef.current?.();
+  }
+
+  function moveLayer(index: number, direction: "up" | "down") {
+    const canvas = fabricRef.current;
+    const object = objectAt(index);
+    if (!canvas || !object) return;
+    if (direction === "up") canvas.bringObjectForward(object);
+    else canvas.sendObjectBackwards(object);
+    canvas.requestRenderAll();
+    const nextIndex = canvas.getObjects().indexOf(object);
+    setActiveIndex(nextIndex);
+    notifyRef.current?.();
+  }
+
+  function removeLayer(index: number) {
+    const canvas = fabricRef.current;
+    const object = objectAt(index);
+    if (!canvas || !object) return;
+    canvas.remove(object);
+    canvas.discardActiveObject();
+    canvas.requestRenderAll();
+    setHasSelection(false);
+    setActiveIndex(null);
+    notifyRef.current?.();
+  }
+
+  function bringToFront() {
+    changeActive((object, canvas) => canvas.bringObjectToFront(object));
+  }
+
+  function sendToBack() {
+    changeActive((object, canvas) => canvas.sendObjectToBack(object));
+  }
+
+  function bringForward() {
+    changeActive((object, canvas) => canvas.bringObjectForward(object));
+  }
+
+  function sendBackward() {
+    changeActive((object, canvas) => canvas.sendObjectBackwards(object));
+  }
+
+  function applyTextFormat(patch: {
+    fontFamily?: string;
+    fontSize?: number;
+    fontWeight?: string;
+    fontStyle?: string;
+    textAlign?: "left" | "center" | "right";
+  }) {
+    setFontFamily(patch.fontFamily ?? fontFamily);
+    setFontSize(patch.fontSize ?? fontSize);
+    if (patch.fontWeight !== undefined) setIsBold(patch.fontWeight === "bold");
+    if (patch.fontStyle !== undefined) setIsItalic(patch.fontStyle === "italic");
+    if (patch.textAlign !== undefined) setTextAlign(patch.textAlign);
+    changeActive((object) => {
+      if (!(object instanceof Textbox)) return;
+      object.set(patch);
+      object.initDimensions();
+    });
+  }
 
   function commit(canvas: Canvas, object: FabricObject) {
     object.setCoords();
@@ -199,9 +437,11 @@ export default function DesignEditor({
       left: 250,
       top: 160,
       width: 300,
-      fontSize: 38,
-      fontFamily: "Arial",
-      textAlign: "center",
+      fontSize,
+      fontFamily,
+      fontWeight: isBold ? "bold" : "normal",
+      fontStyle: isItalic ? "italic" : "normal",
+      textAlign,
       fill: "#1f3d35",
     });
     canvas.add(text);
@@ -259,6 +499,8 @@ export default function DesignEditor({
     setAdjustOpen(false);
     setColorOpen(false);
     canvas.renderAll();
+    historyRef.current.clear();
+    setHistoryState({ canUndo: false, canRedo: false });
     notifyRef.current?.();
   }
 
@@ -439,9 +681,18 @@ export default function DesignEditor({
           <PaintBucket /><span>สี</span>
         </button>
         <span className="tool-divider" />
+        <button className="tool-icon" disabled={!historyState.canUndo} onClick={undo} title="ย้อนกลับ (Ctrl+Z)"><Undo2 /></button>
+        <button className="tool-icon" disabled={!historyState.canRedo} onClick={redo} title="ทำซ้ำ (Ctrl+Shift+Z)"><Redo2 /></button>
         <button className="tool-icon" disabled={!hasSelection} onClick={duplicate} title="ทำสำเนา"><Copy /></button>
         <button className="tool-icon danger" disabled={!hasSelection} onClick={remove} title="ลบ"><Trash2 /></button>
         <label className="color-input" title="สีพื้นหลัง"><input type="color" value={background} onChange={(event) => changeBackground(event.target.value)} /><i style={{ background }} /></label>
+      </div>
+
+      <div className="transform-toolbar" aria-label="ลำดับวัตถุ">
+        <button disabled={!hasSelection} onClick={bringToFront} title="ไปข้างหน้าสุด"><ChevronsUp /> หน้าสุด</button>
+        <button disabled={!hasSelection} onClick={bringForward} title="เลื่อนไปข้างหน้า 1 ชั้น"><ArrowUp /> ขึ้น</button>
+        <button disabled={!hasSelection} onClick={sendBackward} title="เลื่อนไปข้างหลัง 1 ชั้น"><ArrowDown /> ลง</button>
+        <button disabled={!hasSelection} onClick={sendToBack} title="ไปหลังสุด"><ChevronsDown /> หลังสุด</button>
       </div>
 
       <div className="transform-toolbar" aria-label="เครื่องมือปรับวัตถุ">
@@ -462,6 +713,27 @@ export default function DesignEditor({
         <button disabled={!hasSelection} onClick={applySelection} title="ยืนยัน"><Check /> ใช้ค่า</button>
         <button className={adjustOpen ? "active" : ""} disabled={!selectedIsImage} onClick={() => setAdjustOpen((value) => !value)}><SlidersHorizontal /> Image Adjust</button>
       </div>
+
+      {selectedIsText && (
+        <div className="text-format-panel" role="group" aria-label="รูปแบบตัวอักษร">
+          <label className="text-font">
+            <span>ฟอนต์</span>
+            <select id="text-font-family" value={fontFamily} onChange={(event) => applyTextFormat({ fontFamily: event.target.value })}>
+              {EDITOR_FONTS.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}
+            </select>
+          </label>
+          <label className="text-size">
+            <span>ขนาด</span>
+            <input id="text-font-size" type="number" min={8} max={200} value={fontSize} onChange={(event) => applyTextFormat({ fontSize: Number(event.target.value) || 8 })} />
+          </label>
+          <button type="button" className={isBold ? "active" : ""} onClick={() => applyTextFormat({ fontWeight: isBold ? "normal" : "bold" })} title="ตัวหนา"><Bold /></button>
+          <button type="button" className={isItalic ? "active" : ""} onClick={() => applyTextFormat({ fontStyle: isItalic ? "normal" : "italic" })} title="ตัวเอียง"><Italic /></button>
+          <span className="tool-divider" />
+          <button type="button" className={textAlign === "left" ? "active" : ""} onClick={() => applyTextFormat({ textAlign: "left" })} title="ชิดซ้าย"><AlignLeft /></button>
+          <button type="button" className={textAlign === "center" ? "active" : ""} onClick={() => applyTextFormat({ textAlign: "center" })} title="กึ่งกลาง"><AlignCenter /></button>
+          <button type="button" className={textAlign === "right" ? "active" : ""} onClick={() => applyTextFormat({ textAlign: "right" })} title="ชิดขวา"><AlignRight /></button>
+        </div>
+      )}
 
       {colorOpen && hasSelection && !selectedIsImage && (
         <div className="color-panel" role="group" aria-label="เลือกสีวัตถุ">
@@ -504,15 +776,26 @@ export default function DesignEditor({
         </div>
       )}
 
-      <div className="print-wrap">
-        <div className="print-label bleed">BLEED</div>
-        <div className="print-canvas" style={{ aspectRatio: `${template.print.widthCm}/${template.print.heightCm}` }}>
-          <canvas ref={elementRef} />
-          <div className="safe-guide" style={{ inset: `${(template.print.safeMarginCm / template.print.heightCm) * 100}% ${(template.print.safeMarginCm / template.print.widthCm) * 100}%` }}><span>SAFE AREA</span></div>
-          {printOption==="TWO_SIDES"&&<div className="two-side-guides" aria-hidden="true"><div><span>ด้านซ้าย</span><b><i/>CENTER<br/>5 × 4.5 cm</b></div><em/><div><span>ด้านขวา</span><b><i/>CENTER<br/>15 × 4.5 cm</b></div></div>}
+      <div className="editor-stage">
+        <div className="print-wrap">
+          <div className="print-label bleed">BLEED</div>
+          <div className="print-canvas" style={{ aspectRatio: `${template.print.widthCm}/${template.print.heightCm}` }}>
+            <canvas ref={elementRef} />
+            <div className="safe-guide" style={{ inset: `${(template.print.safeMarginCm / template.print.heightCm) * 100}% ${(template.print.safeMarginCm / template.print.widthCm) * 100}%` }}><span>SAFE AREA</span></div>
+            {printOption==="TWO_SIDES"&&<div className="two-side-guides" aria-hidden="true"><div><span>ด้านซ้าย</span><b><i/>CENTER<br/>5 × 4.5 cm</b></div><em/><div><span>ด้านขวา</span><b><i/>CENTER<br/>15 × 4.5 cm</b></div></div>}
+          </div>
+          <div className="dimension width">{template.print.widthCm} cm</div>
+          <div className="dimension height">{template.print.heightCm} cm</div>
         </div>
-        <div className="dimension width">{template.print.widthCm} cm</div>
-        <div className="dimension height">{template.print.heightCm} cm</div>
+        <LayerPanel
+          layers={layers}
+          activeIndex={activeIndex}
+          onSelect={selectLayer}
+          onToggleVisible={toggleLayerVisible}
+          onToggleLock={toggleLayerLock}
+          onMove={moveLayer}
+          onRemove={removeLayer}
+        />
       </div>
 
       <div className="editor-footer">
@@ -543,6 +826,27 @@ function AdjustmentSlider({
       <b>{value}</b>
     </label>
   );
+}
+
+function layerKind(object: FabricObject): EditorLayer["kind"] {
+  if (object instanceof Textbox) return "text";
+  if (object instanceof FabricImage) return "image";
+  return "shape";
+}
+
+function describeLayer(object: FabricObject): string {
+  if (object instanceof Textbox) {
+    const text = object.text.replace(/\s+/g, " ").trim();
+    return text ? (text.length > 18 ? `${text.slice(0, 18)}…` : text) : "ข้อความ";
+  }
+  if (object instanceof FabricImage) return "รูปภาพ";
+  if (object instanceof Rect) return "กราฟิก";
+  return object.type ?? "วัตถุ";
+}
+
+function normalizeTextAlign(value: unknown): "left" | "center" | "right" {
+  if (value === "left" || value === "right") return value;
+  return "center";
 }
 
 function readFillColor(object: FabricObject) {
