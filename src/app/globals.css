@@ -82,6 +82,13 @@
 .layer-actions button.danger:hover{background:#f8e4e1;color:#a7473d}
 .layer-actions svg{width:12px;height:12px}
 .layer-empty{margin:0;padding:14px 12px;font-size:10px;color:var(--muted);text-align:center}
+.shortcut-panel{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 14px;padding:12px 18px;border-bottom:1px solid var(--line);background:#f1eee6}
+.shortcut-panel>div{display:flex;align-items:center;gap:8px;min-width:0}
+.shortcut-panel kbd{flex:0 0 auto;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;background:white;padding:3px 7px;font:600 10px ui-monospace,monospace;color:var(--ink);white-space:nowrap}
+.shortcut-panel span{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tool-caption{font-size:10px}
+.tool-icon.active{border-color:#73988b;background:#e4efe9}
+@media(max-width:600px){.shortcut-panel{grid-template-columns:1fr}.tool-caption{display:none}}
 @media(max-width:1100px){.editor-stage{grid-template-columns:1fr}.layer-panel{margin:0 18px 18px}.editor-stage .print-wrap{margin-top:38px}}
 
 /* Product-first design studio */

@@ -27,6 +27,7 @@ import {
   FlipVertical2,
   ImagePlus,
   Italic,
+  Keyboard,
   Maximize2,
   Palette,
   PaintBucket,
@@ -47,6 +48,12 @@ import {
 import type { PrintOptionType, PrintPlacement } from "@/lib/design/print-option";
 import { EditorHistory } from "@/lib/design/editor-history";
 import { DEFAULT_FONT_FAMILY, EDITOR_FONTS } from "@/lib/design/editor-fonts";
+import {
+  EDITOR_SHORTCUT_HINTS,
+  resolveEditorShortcut,
+  shortcutRequiresSelection,
+  type EditorShortcut,
+} from "@/lib/design/editor-shortcuts";
 import LayerPanel, { type EditorLayer } from "./layer-panel";
 import { useDesign } from "./design-provider";
 
@@ -100,6 +107,7 @@ export default function DesignEditor({
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("center");
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const workingHeight = Math.round(
     (WORKING_WIDTH * template.print.heightCm) / template.print.widthCm,
   );
@@ -247,19 +255,23 @@ export default function DesignEditor({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) {
+      const shortcut = resolveEditorShortcut({
+        key: event.key,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        isTextEditing: isEditingText(fabricRef.current),
+        isEditableTarget: isEditableTarget(event.target),
+      });
+      if (!shortcut) return;
+      const isBlockedBySelection = shortcutRequiresSelection(shortcut.action) && !hasSelection;
+      if (isBlockedBySelection) {
+        if (event.ctrlKey || event.metaKey) event.preventDefault();
         return;
       }
-      if (!(event.ctrlKey || event.metaKey)) return;
-      if (event.key.toLowerCase() === "z") {
-        event.preventDefault();
-        if (event.shiftKey) redo();
-        else undo();
-      } else if (event.key.toLowerCase() === "y") {
-        event.preventDefault();
-        redo();
-      }
+      event.preventDefault();
+      runShortcut(shortcut);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -428,6 +440,60 @@ export default function DesignEditor({
     if (!canvas || !object) return;
     mutator(object, canvas);
     commit(canvas, object);
+  }
+
+  function runShortcut(shortcut: EditorShortcut) {
+    switch (shortcut.action) {
+      case "undo":
+        undo();
+        return;
+      case "redo":
+        redo();
+        return;
+      case "duplicate":
+        void duplicate();
+        return;
+      case "delete":
+        remove();
+        return;
+      case "addText":
+        addText();
+        return;
+      case "addShape":
+        addShape();
+        return;
+      case "bringToFront":
+        bringToFront();
+        return;
+      case "bringForward":
+        bringForward();
+        return;
+      case "sendBackward":
+        sendBackward();
+        return;
+      case "sendToBack":
+        sendToBack();
+        return;
+      case "nudge":
+        nudgeByDirection(shortcut.direction ?? "up", shortcut.distance ?? 1);
+        return;
+      case "deselect":
+        applySelection();
+        return;
+      case "exportPrint":
+        exportPrint();
+    }
+  }
+
+  function nudgeByDirection(direction: "up" | "down" | "left" | "right", distance: number) {
+    const offsets = {
+      up: [0, -distance],
+      down: [0, distance],
+      left: [-distance, 0],
+      right: [distance, 0],
+    } as const;
+    const [left, top] = offsets[direction];
+    nudgeActive(left, top);
   }
 
   function addText() {
@@ -670,8 +736,8 @@ export default function DesignEditor({
 
       <div className="editor-toolbar">
         <label className="tool-button"><ImagePlus /><span>อัปโหลดรูป</span><input type="file" accept="image/png,image/jpeg" onChange={upload} /></label>
-        <button className="tool-button" onClick={addText}><Type /><span>ข้อความ</span></button>
-        <button className="tool-button" onClick={addShape}><Palette /><span>กราฟิก</span></button>
+        <button className="tool-button" onClick={addText} title="เพิ่มข้อความ (T)"><Type /><span>ข้อความ</span></button>
+        <button className="tool-button" onClick={addShape} title="เพิ่มกราฟิก (R)"><Palette /><span>กราฟิก</span></button>
         <button
           className={`tool-button${colorOpen ? " active" : ""}`}
           disabled={!hasSelection || selectedIsImage}
@@ -683,16 +749,34 @@ export default function DesignEditor({
         <span className="tool-divider" />
         <button className="tool-icon" disabled={!historyState.canUndo} onClick={undo} title="ย้อนกลับ (Ctrl+Z)"><Undo2 /></button>
         <button className="tool-icon" disabled={!historyState.canRedo} onClick={redo} title="ทำซ้ำ (Ctrl+Shift+Z)"><Redo2 /></button>
-        <button className="tool-icon" disabled={!hasSelection} onClick={duplicate} title="ทำสำเนา"><Copy /></button>
-        <button className="tool-icon danger" disabled={!hasSelection} onClick={remove} title="ลบ"><Trash2 /></button>
+        <button className="tool-icon" disabled={!hasSelection} onClick={duplicate} title="ทำสำเนา (Ctrl+D)"><Copy /></button>
+        <button className="tool-icon danger" disabled={!hasSelection} onClick={remove} title="ลบ (Delete)"><Trash2 /></button>
+        <button
+          className={`tool-icon${shortcutsOpen ? " active" : ""}`}
+          onClick={() => setShortcutsOpen((value) => !value)}
+          title="คีย์ลัด"
+        >
+          <Keyboard /><span className="tool-caption">คีย์ลัด</span>
+        </button>
         <label className="color-input" title="สีพื้นหลัง"><input type="color" value={background} onChange={(event) => changeBackground(event.target.value)} /><i style={{ background }} /></label>
       </div>
 
+      {shortcutsOpen && (
+        <div className="shortcut-panel" role="group" aria-label="คีย์ลัดของตัวออกแบบ">
+          {EDITOR_SHORTCUT_HINTS.map((hint) => (
+            <div key={hint.keys}>
+              <kbd>{hint.keys}</kbd>
+              <span>{hint.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="transform-toolbar" aria-label="ลำดับวัตถุ">
-        <button disabled={!hasSelection} onClick={bringToFront} title="ไปข้างหน้าสุด"><ChevronsUp /> หน้าสุด</button>
-        <button disabled={!hasSelection} onClick={bringForward} title="เลื่อนไปข้างหน้า 1 ชั้น"><ArrowUp /> ขึ้น</button>
-        <button disabled={!hasSelection} onClick={sendBackward} title="เลื่อนไปข้างหลัง 1 ชั้น"><ArrowDown /> ลง</button>
-        <button disabled={!hasSelection} onClick={sendToBack} title="ไปหลังสุด"><ChevronsDown /> หลังสุด</button>
+        <button disabled={!hasSelection} onClick={bringToFront} title="ไปข้างหน้าสุด (Ctrl+Shift+])"><ChevronsUp /> หน้าสุด</button>
+        <button disabled={!hasSelection} onClick={bringForward} title="เลื่อนไปข้างหน้า 1 ชั้น (Ctrl+])"><ArrowUp /> ขึ้น</button>
+        <button disabled={!hasSelection} onClick={sendBackward} title="เลื่อนไปข้างหลัง 1 ชั้น (Ctrl+[)"><ArrowDown /> ลง</button>
+        <button disabled={!hasSelection} onClick={sendToBack} title="ไปหลังสุด (Ctrl+Shift+[)"><ChevronsDown /> หลังสุด</button>
       </div>
 
       <div className="transform-toolbar" aria-label="เครื่องมือปรับวัตถุ">
@@ -800,7 +884,7 @@ export default function DesignEditor({
 
       <div className="editor-footer">
         <p>ไฟล์พิมพ์ <b>{pixels.width} × {pixels.height} px</b> ที่ {template.print.dpi} DPI</p>
-        <button className="download-button" onClick={exportPrint}><Download /> Export Print PNG</button>
+        <button className="download-button" onClick={exportPrint} title="Export ไฟล์พิมพ์ (Ctrl+S)"><Download /> Export Print PNG</button>
       </div>
     </section>
   );
@@ -864,6 +948,16 @@ function readImageAdjustments(image: FabricImage): Adjustments {
     saturation: Math.round((saturation?.saturation ?? 0) * 100),
     opacity: Math.round((image.opacity ?? 1) * 100),
   };
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName);
+}
+
+function isEditingText(canvas: Canvas | null): boolean {
+  const active = canvas?.getActiveObject();
+  return active instanceof Textbox && active.isEditing === true;
 }
 
 function createMugWrapTexture(
