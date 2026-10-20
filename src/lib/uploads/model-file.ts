@@ -1,0 +1,2 @@
+﻿const MAX_MODEL_SIZE=25*1024*1024;
+export async function validateGlb(value:FormDataEntryValue|null){if(!(value instanceof File)||value.size<20||value.size>MAX_MODEL_SIZE||!value.name.toLowerCase().endsWith(".glb"))throw new Error("กรุณาใช้ไฟล์ GLB ไม่เกิน 25 MB");const header=new Uint8Array(await value.slice(0,12).arrayBuffer()),view=new DataView(header.buffer);if(view.getUint32(0,true)!==0x46546c67||view.getUint32(4,true)!==2||view.getUint32(8,true)!==value.size)throw new Error("ไฟล์ GLB ไม่ถูกต้องหรือเสียหาย");return value}

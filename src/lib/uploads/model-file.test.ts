@@ -1,0 +1,3 @@
+﻿import test from "node:test";import assert from "node:assert/strict";import {validateGlb} from "./model-file";
+function glb(size=20){const bytes=new Uint8Array(size),view=new DataView(bytes.buffer);view.setUint32(0,0x46546c67,true);view.setUint32(4,2,true);view.setUint32(8,size,true);return new File([bytes],"mug.glb")}
+test("accepts GLB v2 header",async()=>{const file=glb();assert.equal(await validateGlb(file),file)});test("rejects spoofed GLB",async()=>assert.rejects(()=>validateGlb(new File([new Uint8Array(20)],"mug.glb"))));test("rejects wrong GLB length",async()=>{const file=glb(),bytes=new Uint8Array(await file.arrayBuffer());new DataView(bytes.buffer).setUint32(8,99,true);await assert.rejects(()=>validateGlb(new File([bytes],"mug.glb")))});

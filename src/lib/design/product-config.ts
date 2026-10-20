@@ -17,8 +17,8 @@ export type ProductTemplate = {
   printOptions?: PrintOption[];
   mug: { capacityOz: number; diameterCm: number; heightCm: number };
   print: { widthCm: number; heightCm: number; dpi: number; safeMarginCm: number; bleedCm: number };
-  model: { path: string; printMaterial: string; ceramicMaterial: string; handleMaterial: string };
-  uv: { offsetX: number; offsetY: number; repeatX: number; repeatY: number; rotation: number };
+  model: { path: string; printMaterial: string; ceramicMaterial: string; handleMaterial: string; scale:number; position:[number,number,number]; rotation:[number,number,number] };
+  uv: { offsetX: number; offsetY: number; repeatX: number; repeatY: number; rotation: number; handleReferenceDeg:number };
 };
 
 export const CERAMIC_MUG_11OZ: ProductTemplate = {
@@ -27,8 +27,8 @@ export const CERAMIC_MUG_11OZ: ProductTemplate = {
   price: 299, status: "AVAILABLE", editorType: "MUG_3D", accent: "#dce8d5", badge: "พร้อมออกแบบ",
   mug: { capacityOz: 11, diameterCm: 8.4, heightCm: 9.5 },
   print: { widthCm: 20, heightCm: 9, dpi: 300, safeMarginCm: 0.3, bleedCm: 0.2 },
-  model: { path: "/models/mug-11oz.glb?v=7", printMaterial: "MugBodyPrint", ceramicMaterial: "MugCeramic", handleMaterial: "MugHandle" },
-  uv: { offsetX: 0.25, offsetY: 0, repeatX: 1, repeatY: 1, rotation: 0 },
+  model: { path: "/models/mug-11oz.glb?v=7", printMaterial: "MugBodyPrint", ceramicMaterial: "MugCeramic", handleMaterial: "MugHandle", scale:26, position:[0,0,0], rotation:[0,0,0] },
+  uv: { offsetX: 0.25, offsetY: 0, repeatX: 1, repeatY: 1, rotation: 0, handleReferenceDeg:0 },
 };
 
 export type ProductSummary = Pick<ProductTemplate, "productId" | "slug" | "name" | "category" | "description" | "price" | "status" | "editorType" | "accent" | "badge">;

@@ -82,7 +82,14 @@ function Mug({
     [model],
   );
 
-  return <primitive object={model} scale={26} />;
+  return (
+    <primitive
+      object={model}
+      scale={template.model.scale}
+      position={template.model.position}
+      rotation={template.model.rotation}
+    />
+  );
 }
 
 function createTexture(
@@ -98,6 +105,10 @@ function createTexture(
   texture.minFilter = LinearFilter;
   texture.anisotropy = 8;
   texture.wrapS = RepeatWrapping;
+  texture.wrapT = RepeatWrapping;
+  texture.repeat.set(template.uv.repeatX, template.uv.repeatY);
+  texture.offset.y = template.uv.offsetY;
+  texture.rotation = (template.uv.rotation * Math.PI) / 180;
   const offset = template.uv.offsetX + centerOffsetDeg / 360;
   texture.offset.x = ((offset % 1) + 1) % 1;
   return texture;

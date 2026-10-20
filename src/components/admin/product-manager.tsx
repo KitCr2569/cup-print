@@ -5,9 +5,10 @@ import { Check, Pencil, Plus, X } from "lucide-react";
 import type { CatalogProduct, ProductCategory } from "@/lib/catalog/product-repository";
 import { DEFAULT_PRINT_OPTIONS } from "@/lib/design/print-option";
 import { EDITOR_TYPES, PRODUCT_STATUSES, type EditorType, type ProductStatus } from "@/lib/catalog/product-input";
+import { DEFAULT_MUG_TEMPLATE_SETTINGS } from "@/lib/catalog/product-template-input";
 
 type EditorProduct = Partial<CatalogProduct> & { id:string;slug:string;name:string;description:string;priceSatang:number;categoryId:string;status:ProductStatus;sortOrder:number;editorType:EditorType;accent:string;badge:string;printOptions:CatalogProduct["printOptions"];templateSettings:CatalogProduct["templateSettings"] };
-const EMPTY:EditorProduct={id:"",slug:"",name:"",description:"",priceSatang:0,categoryId:"",status:"COMING_SOON",sortOrder:10,editorType:"MUG_3D",accent:"#dce8d5",badge:"เร็ว ๆ นี้",printOptions:DEFAULT_PRINT_OPTIONS,templateSettings:{capacityOz:11,diameterCm:8.4,heightCm:9.5,dpi:300,safeMarginCm:0.3,bleedCm:0.2}};
+const EMPTY:EditorProduct={id:"",slug:"",name:"",description:"",priceSatang:0,categoryId:"",status:"COMING_SOON",sortOrder:10,editorType:"MUG_3D",accent:"#dce8d5",badge:"เร็ว ๆ นี้",printOptions:DEFAULT_PRINT_OPTIONS,templateSettings:DEFAULT_MUG_TEMPLATE_SETTINGS};
 export default function ProductManager({products,categories}:{products:CatalogProduct[];categories:ProductCategory[]}){
  const [editing,setEditing]=useState<EditorProduct|null>(null);const [image,setImage]=useState<File|null>(null);const [error,setError]=useState("");const [isSaving,setIsSaving]=useState(false);
  function open(product?:CatalogProduct){setError("");setImage(null);setEditing(product?{...product}: {...EMPTY,categoryId:categories[0]?.id||""})}
