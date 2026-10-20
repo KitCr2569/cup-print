@@ -22,6 +22,7 @@ import {
   ImagePlus,
   Maximize2,
   Palette,
+  PaintBucket,
   RotateCcw,
   RotateCw,
   SlidersHorizontal,
@@ -44,6 +45,14 @@ const DEFAULT_ADJUSTMENTS = {
   saturation: 0,
   opacity: 100,
 };
+const COLOR_PALETTE = [
+  "#1f3d35", "#315c50", "#557d6c", "#8fae9b",
+  "#fffdf8", "#f4ead9", "#e8d7bd", "#c9a97a",
+  "#df5f36", "#e8a178", "#f2c9a0", "#b0453a",
+  "#2f4858", "#4a6fa5", "#8aa7c4", "#c9d7e6",
+  "#5c4a72", "#9b7aa8", "#d8c3de", "#1a1a1a",
+];
+const FALLBACK_FILL = "#315c50";
 
 type Adjustments = typeof DEFAULT_ADJUSTMENTS;
 
@@ -66,6 +75,8 @@ export default function DesignEditor({
   const [selectionAngle, setSelectionAngle] = useState(0);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustments, setAdjustments] = useState<Adjustments>(DEFAULT_ADJUSTMENTS);
+  const [colorOpen, setColorOpen] = useState(false);
+  const [activeFill, setActiveFill] = useState(FALLBACK_FILL);
   const workingHeight = Math.round(
     (WORKING_WIDTH * template.print.heightCm) / template.print.widthCm,
   );
@@ -120,12 +131,15 @@ export default function DesignEditor({
       setSelectionAngle(Math.round(active?.angle ?? 0));
       const isImage = active instanceof FabricImage;
       setSelectedIsImage(isImage);
-      if (!isImage) {
-        setAdjustOpen(false);
-        setAdjustments(DEFAULT_ADJUSTMENTS);
+      if (active) setActiveFill(readFillColor(active));
+      if (isImage) {
+        setAdjustments(readImageAdjustments(active));
+        setColorOpen(false);
         return;
       }
-      setAdjustments(readImageAdjustments(active));
+      setAdjustOpen(false);
+      setAdjustments(DEFAULT_ADJUSTMENTS);
+      if (!active) setColorOpen(false);
     };
 
     canvas.on("object:added", notify);
@@ -243,6 +257,7 @@ export default function DesignEditor({
     canvas.backgroundColor = "#fffdf8";
     setBackground("#fffdf8");
     setAdjustOpen(false);
+    setColorOpen(false);
     canvas.renderAll();
     notifyRef.current?.();
   }
@@ -272,6 +287,11 @@ export default function DesignEditor({
     canvas.add(shape);
     canvas.setActiveObject(shape);
     canvas.renderAll();
+  }
+
+  function applyFill(color: string) {
+    setActiveFill(color);
+    changeActive((object) => object.set("fill", color));
   }
 
   function scaleActive(factor: number) {
@@ -410,6 +430,14 @@ export default function DesignEditor({
         <label className="tool-button"><ImagePlus /><span>อัปโหลดรูป</span><input type="file" accept="image/png,image/jpeg" onChange={upload} /></label>
         <button className="tool-button" onClick={addText}><Type /><span>ข้อความ</span></button>
         <button className="tool-button" onClick={addShape}><Palette /><span>กราฟิก</span></button>
+        <button
+          className={`tool-button${colorOpen ? " active" : ""}`}
+          disabled={!hasSelection || selectedIsImage}
+          onClick={() => setColorOpen((value) => !value)}
+          title={selectedIsImage ? "รูปภาพใช้แถบ Image Adjust แทน" : "เปลี่ยนสีวัตถุ"}
+        >
+          <PaintBucket /><span>สี</span>
+        </button>
         <span className="tool-divider" />
         <button className="tool-icon" disabled={!hasSelection} onClick={duplicate} title="ทำสำเนา"><Copy /></button>
         <button className="tool-icon danger" disabled={!hasSelection} onClick={remove} title="ลบ"><Trash2 /></button>
@@ -434,6 +462,37 @@ export default function DesignEditor({
         <button disabled={!hasSelection} onClick={applySelection} title="ยืนยัน"><Check /> ใช้ค่า</button>
         <button className={adjustOpen ? "active" : ""} disabled={!selectedIsImage} onClick={() => setAdjustOpen((value) => !value)}><SlidersHorizontal /> Image Adjust</button>
       </div>
+
+      {colorOpen && hasSelection && !selectedIsImage && (
+        <div className="color-panel" role="group" aria-label="เลือกสีวัตถุ">
+          <div className="color-swatches">
+            {COLOR_PALETTE.map((color, index) => (
+              <button
+                key={color}
+                type="button"
+                id={`swatch-${index}`}
+                className={activeFill.toLowerCase() === color ? "active" : ""}
+                style={{ background: color }}
+                title={color}
+                aria-label={`สี ${color}`}
+                onClick={() => applyFill(color)}
+              />
+            ))}
+          </div>
+          <label className="color-custom">
+            <input
+              id="custom-fill"
+              type="color"
+              value={activeFill}
+              onChange={(event) => applyFill(event.target.value)}
+            />
+            <span>{activeFill.toUpperCase()}</span>
+          </label>
+          <button type="button" className="color-apply" onClick={applySelection}>
+            <Check /> ใช้สีนี้
+          </button>
+        </div>
+      )}
 
       {adjustOpen && selectedIsImage && (
         <div className="image-adjust-panel">
@@ -484,6 +543,11 @@ function AdjustmentSlider({
       <b>{value}</b>
     </label>
   );
+}
+
+function readFillColor(object: FabricObject) {
+  const { fill } = object;
+  return typeof fill === "string" ? fill : FALLBACK_FILL;
 }
 
 function readImageAdjustments(image: FabricImage): Adjustments {

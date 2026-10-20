@@ -42,6 +42,20 @@
 .image-adjust-panel>button{height:34px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:white;color:var(--ink);font-size:10px;font-weight:600;white-space:nowrap}
 @media(max-width:900px){.image-adjust-panel{grid-template-columns:repeat(2,minmax(120px,1fr))}}
 @media(max-width:600px){.transform-toolbar{padding-inline:12px}.image-adjust-panel{grid-template-columns:1fr;padding-inline:12px}}
+.tool-button.active{border-color:#73988b;background:#e4efe9}
+.tool-button:disabled{opacity:.34;cursor:not-allowed}
+.color-panel{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:13px 18px;border-bottom:1px solid var(--line);background:#f1eee6}
+.color-swatches{display:grid;grid-template-columns:repeat(10,22px);gap:7px}
+.color-swatches button{width:22px;height:22px;border-radius:6px;border:1px solid #0000001f;padding:0;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.color-swatches button:hover{transform:scale(1.15)}
+.color-swatches button.active{box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--ink);transform:scale(1.1)}
+.color-custom{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:8px;background:white;padding:4px 9px 4px 4px;cursor:pointer}
+.color-custom input{width:26px;height:26px;padding:0;border:0;background:none;cursor:pointer}
+.color-custom span{font:600 10px ui-monospace,monospace;color:var(--muted);letter-spacing:.5px}
+.color-apply{height:34px;padding:0 12px;display:flex;align-items:center;gap:5px;border:1px solid var(--ink);border-radius:8px;background:white;color:var(--ink);font-size:11px;font-weight:700}
+.color-apply svg{width:14px;height:14px}
+@media(max-width:900px){.color-swatches{grid-template-columns:repeat(10,20px);gap:5px}.color-swatches button{width:20px;height:20px}}
+@media(max-width:600px){.color-panel{padding-inline:12px}.color-swatches{grid-template-columns:repeat(10,1fr);width:100%}.color-swatches button{width:100%;height:24px}}
 
 /* Product-first design studio */
 .product-select-page{min-height:100vh;background:radial-gradient(circle at 82% 16%,#dce9d5 0,transparent 28%),linear-gradient(135deg,#f7f2e8 0%,#eef2e8 100%)}
